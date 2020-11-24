@@ -261,8 +261,4 @@ Extra features:
     # that such nodes might share
     rcc = bct.rich_club_wu(structure_matrix)
     feature_matrix.append(rcc)
-    
-    
-    # Extra Code:
-   
 '''

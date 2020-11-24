@@ -10,8 +10,8 @@ Logic of code:
     1.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Input: file directory, array of sub_IDs, array of HUP_IDs, array of random atlases, array of standard atlases,
-list of permutations, array of starting ictal times, array of ending ictal times, feature matrix, and the Functional
-connectivity matrices
+list of permutations, array of starting preictal times, array of starting ictal times, arrays of ending preictal times,
+array of ending ictal times, feature matrix, and functional connectivity matrices
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Output: Random Forest predictions of FC based on SC
@@ -25,8 +25,8 @@ import numpy as np
 import pandas as pd
 
 
-def FC_SC_random_forest(file_directory, sub_ID_array, HUP_ID, random_atlases, standard_atlases, perm_list, start_ictal,
-                        end_ictal, features, FC_list):
+def FC_SC_random_forest(file_directory, sub_ID_array, HUP_ID, random_atlases, standard_atlases, perm_list,
+                        start_preictal, end_preictal, start_ictal, end_ictal, features, FC_list):
 
     # Get electrode localization
     electrode_localization_by_atlas_file_paths = []
@@ -47,39 +47,94 @@ def FC_SC_random_forest(file_directory, sub_ID_array, HUP_ID, random_atlases, st
                    'mni_{3}.csv'.format(file_directory, s, s, sa)
             electrode_localization_by_atlas_file_paths.append(file)
 
-    # Creates labels, which are functional connectivity matrices (ictal)
-    FC_file_path_array = []
+    # Accesses files for functional connectivity matrices (preictal)
+    FC_preictal_file_path_array = []
+    for x in range(len(standard_atlases)):
+        for s in range(len(sub_ID_array)):
+            file = '{0}sub-{1}/connectivity_matrices/functional/eeg/sub-{2}_{3}_{4}_{5}_functionalConnectivity.pickle' \
+                .format(file_directory, sub_ID_array[s], sub_ID_array[s], HUP_ID[s], start_preictal[s], end_preictal[s])
+            FC_preictal_file_path_array.append(file)
+    print(len(FC_preictal_file_path_array))
+
+    # Accesses files for functional connectivity matrices (ictal)
+    FC_ictal_file_path_array = []
     for x in range(len(standard_atlases)):
         for s in range(len(sub_ID_array)):
             file = '{0}sub-{1}/connectivity_matrices/functional/eeg/sub-{2}_{3}_{4}_{5}_functionalConnectivity.pickle'\
                 .format(file_directory, sub_ID_array[s], sub_ID_array[s], HUP_ID[s], start_ictal[s], end_ictal[s])
-            FC_file_path_array.append(file)
-    print(len(FC_file_path_array))
+            FC_ictal_file_path_array.append(file)
+    print(len(FC_ictal_file_path_array))
 
-    # Get functional connectivity data in pickle file format
-    for FC_file_path in FC_file_path_array:
+    # Get functional connectivity data in pickle file format (preictal)
+    FC_preictal_list = []
+    for FC_file_path in FC_preictal_file_path_array:
         with open(FC_file_path, 'rb') as f: broadband, alphatheta, beta, lowgamma, highgamma, \
                                     electrode_row_and_column_names, order_of_matrices_in_pickle_file = pickle.load(f)
-        FC_list.append([broadband, alphatheta, beta, lowgamma, highgamma])
+        FC_preictal_list.append([broadband])
 
-    '''
-    Get Pre-ictal
-    Preictal
-    FC: Tpi x NChan x NChan
-    
-    Ictal
-    FC: Ti x NChan x Nchan
-    
-    Take average of
-    Preictal: NChan x Nchan
-    
-    
-    Take average of
-    Ictal: NChan x Nchan
-    
-    --> Subtract
-    Ictal - Preictal: Nchan x Nchan
-    '''
+    # Get functional connectivity data in pickle file format (ictal)
+    FC_ictal_list = []
+    for FC_file_path in FC_ictal_file_path_array:
+        with open(FC_file_path, 'rb') as f: broadband, alphatheta, beta, lowgamma, highgamma, \
+                                    electrode_row_and_column_names, order_of_matrices_in_pickle_file = pickle.load(f)
+        FC_ictal_list.append([broadband])
+
+    # average preictal
+    FC_average_preictal = []
+    for i in range(len(FC_preictal_list)):
+        row = []
+        for j in range(len(FC_preictal_list[i])):
+            col = []
+            for x in range(len(FC_preictal_list[i][j])):
+                col.append(0)
+            row.append(col)
+        FC_average_preictal.append(row)
+
+    for i in range(len(FC_preictal_list)):
+        for j in range(len(FC_preictal_list[i])):
+            for x in range(len(FC_preictal_list[i][j])):
+                FC_average_preictal[i][j][x] += FC_preictal_list[i][j][x]
+
+    for i in range(len(FC_preictal_list)):
+        for j in range(len(FC_preictal_list[i])):
+            for x in range(len(FC_preictal_list[i][j])):
+                FC_average_preictal[i][j][x] /= len(FC_preictal_list[i][j])
+
+    # average ictal
+    FC_average_ictal = []
+    for i in range(len(FC_ictal_list)):
+        row_ictal = []
+        for j in range(len(FC_ictal_list[i])):
+            col_ictal = []
+            for x in range(len(FC_ictal_list[i][j])):
+                col_ictal.append(0)
+            row_ictal.append(col_ictal)
+        FC_average_ictal.append(row_ictal)
+
+    for i in range(len(FC_ictal_list)):
+        for j in range(len(FC_preictal_list[i])):
+            for x in range(len(FC_preictal_list[i][j])):
+                FC_average_ictal[i][j][x] += FC_ictal_list[i][j][x]
+
+    for i in range(len(FC_ictal_list)):
+        for j in range(len(FC_ictal_list[i])):
+            for x in range(len(FC_ictal_list[i][j])):
+                FC_average_ictal[i][j][x] /= len(FC_ictal_list[i][j])
+
+    # subtract preictal - ictal
+    for i in range(len(FC_preictal_list)):
+        row = []
+        for j in range(len(FC_preictal_list[i])):
+            col = []
+            for x in range(len(FC_preictal_list[i][j])):
+                col.append(0)
+            row.append(col)
+        FC_list.append(row)
+
+    for i in range(len(FC_ictal_list)):
+        for j in range(len(FC_ictal_list[i])):
+            for x in range(len(FC_ictal_list[i][j])):
+                FC_list[i][j][x] = FC_average_preictal[i][j][x] - FC_average_ictal[i][j][x]
 
     # Get electrode localization by atlas csv file data. From get_electrode_localization.py
     electrode_localization_by_atlas = []
@@ -146,10 +201,8 @@ def FC_SC_random_forest(file_directory, sub_ID_array, HUP_ID, random_atlases, st
             FC_list[i][j] = np.delete(FC_list[i][j], index, axis=1)
             ROIs[i] = np.delete(ROIs, index, axis=0)
 
-    features_2D = []
-    labels_1D = []
-
     # break down feature matrix 2D - 1D FC matrix !!!
+    features_2D = []
     for i in range(len(features)):
         all_depth = []
         for col in range(len(features[i])):
@@ -161,8 +214,11 @@ def FC_SC_random_forest(file_directory, sub_ID_array, HUP_ID, random_atlases, st
     print("length features: ", len(features_2D))
     # print(features_2D)
 
-    for i in range(len(FC_list[0])):
-        labels_1D.append(FC_list[0][j]) # only use broadband
+    labels_1D = []
+    for i in range(len(FC_list)):
+        for j in range(len(FC_list[i])):
+            for x in range(len(FC_list[i][j])):
+                labels_1D.append(FC_list[i][j][x]) # only use broadband now
 
     print("length labels: ", len(labels_1D))
     # print(labels_1D)

@@ -23,6 +23,7 @@ Output: Random Forest predictions of FC based on SC
 """
 import pickle
 from python_files import random_forest
+import pandas as pd
 from python_files.create_feature_matrix import create_feature_matrix
 
 # 7 patients, 24 atlases (11 random atlases with 30 permutations & 13 standard atlases)
@@ -215,5 +216,9 @@ for FC_file_path in FC_ictal_file_path_array:
 
 FC_list = []
 
-random_forest.FC_SC_random_forest(features, FC_preictal_list, FC_ictal_list, FC_list,
-                                  electrode_localization_by_atlas_file_paths)
+# Get electrode localization by atlas csv file data. From get_electrode_localization.py
+electrode_localization_by_atlas = []
+for electrode_localization_by_atlas_file in electrode_localization_by_atlas_file_paths:
+    electrode_localization_by_atlas.append(pd.read_csv(electrode_localization_by_atlas_file))
+
+random_forest.FC_SC_random_forest(features, FC_preictal_list, FC_ictal_list, FC_list, electrode_localization_by_atlas)

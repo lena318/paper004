@@ -19,39 +19,34 @@ Output: Random Forest predictions of FC based on SC
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 """
 import numpy as np
-import pandas as pd
 
 from python_files.testing_python_toolbox import electrode_row_and_column_names
 
 
-def FC_SC_random_forest(features, FC_preictal_list, FC_ictal_list, FC_list,
-                        electrode_localization_by_atlas_file_paths):
-
+def FC_SC_random_forest(features, FC_preictal_list, FC_ictal_list, FC_list, electrode_localization_by_atlas):
     # average preictal
     FC_average_preictal = np.zeros(shape=(len(FC_preictal_list), len(FC_preictal_list[0]), len(FC_preictal_list[0][0])))
     print(FC_average_preictal.shape)
 
-    for file in len(FC_average_preictal):
-        for row in len(FC_average_preictal[file]):
-            for col in len(FC_average_preictal[row]):
-                FC_average_preictal[row, col] = np.meannaremove(FC_preictal_list[file, row, col, :])
+    for file in range(len(FC_average_preictal)):
+        for row in range(len(FC_average_preictal[file])):
+            for col in range(len(FC_average_preictal[row])):
+                FC_average_preictal[row, col] = np.nanmean(FC_preictal_list[file], axis=2)
 
     # average ictal
     FC_average_ictal = np.zeros(shape=(len(FC_ictal_list), len(FC_ictal_list[0]), len(FC_ictal_list[0][0])))
     print(FC_average_ictal.shape)
 
-    for file in len(FC_average_ictal):
-        for row in len(FC_average_ictal[file]):
-            for col in len(FC_average_ictal[row]):
-                FC_average_preictal[row, col] = np.meannaremove(FC_ictal_list[file, row, col, :])
+    for file in range(len(FC_average_ictal)):
+        for row in range(len(FC_average_ictal[file])):
+            for col in range(len(FC_average_ictal[row])):
+                FC_average_preictal[row, col] = np.nanmeanmean(FC_ictal_list[file], axis=2)
 
     # subtract preictal - ictal
-    FC_list = FC_ictal_list - FC_preictal_list #???
+    FC_list = [None] * len(FC_ictal_list)
 
-    # Get electrode localization by atlas csv file data. From get_electrode_localization.py
-    electrode_localization_by_atlas = []
-    for electrode_localization_by_atlas_file in electrode_localization_by_atlas_file_paths:
-        electrode_localization_by_atlas.append(pd.read_csv(electrode_localization_by_atlas_file))
+    for L in range(len(FC_ictal_list)):
+        FC_list[L] = FC_ictal_list[L] - FC_preictal_list[L]
 
     # Remove electrodes in "electrode localization" not found in Functional Connectivity matrices
     electrode_localization_names = []

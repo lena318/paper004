@@ -184,6 +184,11 @@ for s in sub_ID_array:
                    'mni_{3}.csv'.format(file_directory, s, s, sa)
         electrode_localization_by_atlas_file_paths.append(file)
 
+# Get electrode localization by atlas csv file data. From get_electrode_localization.py
+electrode_localization_by_atlas = []
+for electrode_localization_by_atlas_file in electrode_localization_by_atlas_file_paths:
+    electrode_localization_by_atlas.append(pd.read_csv(electrode_localization_by_atlas_file))
+
 # Accesses files for functional connectivity matrices (preictal)
 FC_preictal_file_path_array = []
 for x in range(len(standard_atlases)):
@@ -215,10 +220,5 @@ for FC_file_path in FC_ictal_file_path_array:
     FC_ictal_list.append([broadband])
 
 FC_list = []
-
-# Get electrode localization by atlas csv file data. From get_electrode_localization.py
-electrode_localization_by_atlas = []
-for electrode_localization_by_atlas_file in electrode_localization_by_atlas_file_paths:
-    electrode_localization_by_atlas.append(pd.read_csv(electrode_localization_by_atlas_file))
 
 random_forest.FC_SC_random_forest(features, FC_preictal_list, FC_ictal_list, FC_list, electrode_localization_by_atlas)

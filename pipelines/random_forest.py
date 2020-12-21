@@ -40,7 +40,7 @@ def FC_SC_random_forest(features, FC_preictal_list, FC_ictal_list, FC_list, elec
     for file in range(len(FC_average_ictal)):
         for row in range(len(FC_average_ictal[file])):
             for col in range(len(FC_average_ictal[row])):
-                FC_average_preictal[row, col] = np.nanmeanmean(FC_ictal_list[file], axis=2)
+                FC_average_preictal[row, col] = np.nanmean(FC_ictal_list[file], axis=2)
 
     # subtract preictal - ictal
     FC_list = [None] * len(FC_ictal_list)
